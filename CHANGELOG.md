@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.7.0](https://github.com/inspect-js/is-equal/compare/v1.6.5...v1.7.0) - 2023-10-20
+
+## [v1.6.5](https://github.com/inspect-js/is-equal/compare/v1.6.4...v1.6.5) - 2023-10-20
+
+### Commits
+
+- [New] compare `.toString`, `.valueOf`, and `[Symbol.toPrimitive]` completions [`fa8d0ae`](https://github.com/inspect-js/is-equal/commit/fa8d0aeed446cf0ea4900743171afbbe4294ad45)
+- [meta] use `npmignore` to autogenerate an npmignore file [`919afcd`](https://github.com/inspect-js/is-equal/commit/919afcddd8bb6b4513c3a4837b7491ae395ce8cf)
+- [Tests] increase coverage [`bbe8513`](https://github.com/inspect-js/is-equal/commit/bbe8513ab9a40c54c313b5957ad1ee78deb8dfd4)
+- [Dev Deps] update `eslint`, `@ljharb/eslint-config`, `aud`, `auto-changelog`, `es-value-fixtures`, `foreach`, `object.assign`, `tape` [`157a4fe`](https://github.com/inspect-js/is-equal/commit/157a4feec8343aa0f72912440bab6b580d561f54)
+- [Refactor] use `hasown` instead of `has` [`590f3f6`](https://github.com/inspect-js/is-equal/commit/590f3f67419a02a43f1f6b87cd7f8e1a44b02d27)
+- [Fix] improve error message when callability is mismatched [`dc0f577`](https://github.com/inspect-js/is-equal/commit/dc0f5776e33b64e4cda78795ab973ecdde3f4a2e)
+- [Deps] update `functions-have-names`, `has-bigints`, `has-symbols`, `is-callable`, `is-number-object`, `object-inspect` [`c066c94`](https://github.com/inspect-js/is-equal/commit/c066c9418d96c1b2b23342c2c1045ebaad2072b7)
+- [actions] update rebase action to use reusable workflow [`34eeaf5`](https://github.com/inspect-js/is-equal/commit/34eeaf5072253d470ab5f8a13d0788f0f0f282b9)
+- [Deps] update `es-get-iterator`, `object-inspect`, `object.entries`, `object.getprototypeof` [`8ce483c`](https://github.com/inspect-js/is-equal/commit/8ce483cbd006c9bb3880784bec21f5c46d0ec236)
+- [Dev Deps] update `@ljharb/eslint-config`, `aud`, `es6-shim`, `tape` [`b140b08`](https://github.com/inspect-js/is-equal/commit/b140b080e82cc8746c819a3970f63644abcf3013)
+- [Tests] use `for-each` instead of `foreach` [`8baba96`](https://github.com/inspect-js/is-equal/commit/8baba968df07d2fd48ec0f7a3ca895e4058a5a9f)
+- [Deps] update `object-inspect` [`65f0b06`](https://github.com/inspect-js/is-equal/commit/65f0b06bb800d81b1f26b88fea417c814edaccca)
+- [Dev Deps] update `tape` [`dca5479`](https://github.com/inspect-js/is-equal/commit/dca54796c8f3ea85f970403f3df1b81e7cf4025e)
+
+## [v1.6.4](https://github.com/inspect-js/is-equal/compare/v1.6.3...v1.6.4) - 2022-01-10
+
+### Commits
+
+- [actions] reuse common workflows [`c8e9a71`](https://github.com/inspect-js/is-equal/commit/c8e9a716715788f472ee84ba55f21b775eb1247f)
+- [Fix] still check own properties on Dates, RegExps, and Functions [`3295149`](https://github.com/inspect-js/is-equal/commit/32951490626e3b4e6929bd0b06e50f4f4d82ebda)
+- [actions] update codecov uploader [`3157da9`](https://github.com/inspect-js/is-equal/commit/3157da9afdaabc6fb2423eea484aa47b75caf6e5)
+- [Dev Deps] update `eslint`, `@ljharb/eslint-config`, `safe-publish-latest`, `tape` [`ee76f73`](https://github.com/inspect-js/is-equal/commit/ee76f7362b3b6d19fe908cf8f9f3b1510aa68dd6)
+- [Dev Deps] update `eslint`, `@ljharb/eslint-config`, `tape` [`0653181`](https://github.com/inspect-js/is-equal/commit/0653181b78aedcc4f596c8e159e3cb0ff0962208)
+- [Deps] update `is-bigint`, `object.entries`, `object.getprototypeof` [`282a4e6`](https://github.com/inspect-js/is-equal/commit/282a4e68fceba7d8ce1d42b41fac4056a4eb97df)
+- [Deps] update `object-inspect` [`b084bdf`](https://github.com/inspect-js/is-equal/commit/b084bdfaea7dd5b5cf04ef77dbeaa3e0785137a8)
+
 ## [v1.6.3](https://github.com/inspect-js/is-equal/compare/v1.6.2...v1.6.3) - 2021-08-06
 
 ### Commits

@@ -7,11 +7,12 @@ var hasSymbolShams = require('has-symbols/shams')();
 var hasBigInts = require('has-bigints')();
 var arrowFunctions = require('make-arrow-function').list();
 var objectEntries = require('object.entries');
-var forEach = require('foreach');
+var forEach = require('for-each');
 var functionsHaveNames = require('functions-have-names')();
 var inspect = require('object-inspect');
 var v = require('es-value-fixtures');
 var hasGeneratorSupport = v.generatorFunctions.length > 0;
+var assign = require('object.assign');
 
 var symbolIterator = (hasSymbols || hasSymbolShams) && Symbol.iterator;
 var symbolToStringTag = (hasSymbols || hasSymbolShams) && Symbol.toStringTag;
@@ -29,6 +30,27 @@ test('nullish', function (t) {
 	t.equal('', isEqualWhy(), 'absent undefineds are equal');
 	t.equal('', isEqualWhy(undefined, undefined), 'present undefineds are equal');
 	t.equal('', isEqualWhy(null, null), 'nulls are equal');
+
+	/* globals document: false */
+	t.test('document.all', { skip: typeof document !== 'undefined' }, function (st) {
+		var all = typeof document !== 'undefined' && document.all;
+
+		st.equal(
+			isEqualWhy(all, null),
+			String(all) + ' !== null',
+			'document.all and null are not equal'
+		);
+
+		st.equal(
+			isEqualWhy(all, all),
+			'',
+			'document.all is equal to itself'
+		);
+
+		// TODO: get a new iframe's document.all and compare to this one's
+
+		st.end();
+	});
 
 	t.end();
 });
@@ -234,6 +256,14 @@ test('dates', function (t) {
 		st.end();
 	});
 
+	var zero = new Date(0);
+	var zeroPlus = assign(new Date(0), { a: 1 });
+	t.equal(
+		isEqualWhy(zero, zeroPlus),
+		'second argument has key "a"; first does not',
+		inspect(zero) + ' and ' + inspect(zeroPlus) + ' are not equal'
+	);
+
 	t.end();
 });
 
@@ -293,6 +323,14 @@ test('regexes', function (t) {
 
 		st.end();
 	});
+
+	var re = /a/g;
+	var rePlus = assign(/a/g, { a: 1 });
+	t.equal(
+		isEqualWhy(re, rePlus),
+		'second argument has key "a"; first does not',
+		inspect(re) + ' and ' + inspect(rePlus) + ' are not equal'
+	);
 
 	t.end();
 });
@@ -395,6 +433,16 @@ test('arrays', function (t) {
 });
 
 test('objects', function (t) {
+	t.test('fake toStringTag', { skip: !symbolToStringTag }, function (st) {
+		var fake = function () {};
+		fake[symbolToStringTag] = 'Object';
+
+		st.equal(isEqualWhy({}, fake), 'second argument is callable; first is not');
+		st.equal(isEqualWhy(fake, {}), 'first argument is callable; second is not');
+
+		st.end();
+	});
+
 	t.test('prototypes', function (st) {
 		var F = function F() {
 			this.foo = 42;
@@ -519,13 +567,11 @@ test('functions', function (t) {
 	var g = Object(function g() { /* SOME STUFF */ return 1; });
 	var anon1 = Object(function () { /* ANONYMOUS! */ return 'anon'; });
 	var anon2 = Object(function () { /* ANONYMOUS! */ return 'anon'; });
-	/* jscs: disable */
 	/* eslint-disable space-before-function-paren */
 	/* eslint-disable space-before-blocks */
 	var fnNoSpace = Object(function(){});
 	/* eslint-enable space-before-blocks */
 	/* eslint-enable space-before-function-paren */
-	/* jscs: enable */
 	var fnWithSpaceBeforeBody = Object(function () {});
 	var emptyFnWithName = Object(function a() {});
 	/* eslint-disable no-unused-vars */
@@ -564,7 +610,7 @@ test('functions', function (t) {
 			'functions with different names but same implementations are not equal'
 		);
 	}
-	t.equal('', isEqualWhy(f1, f2), 'functions with same names but same implementations are equal');
+	t.equal(isEqualWhy(f1, f2), '', 'functions with same names but same implementations are equal');
 	t.equal(
 		isEqualWhy(f1, f3),
 		'Function string representations differ',
@@ -725,6 +771,16 @@ test('functions', function (t) {
 		st.end();
 	});
 
+	/* eslint-disable no-unused-vars */
+	var fn = function f(x) { 'y'; };
+	var fnPlus = assign(function f(x) { 'y'; }, { a: 1 });
+	/* eslint-enable no-unused-vars */
+	t.equal(
+		isEqualWhy(fn, fnPlus),
+		'second argument has key "a"; first does not',
+		inspect(fn) + ' and ' + inspect(fnPlus) + ' are not equal'
+	);
+
 	t.end();
 });
 
@@ -853,6 +909,112 @@ test('bigints', { skip: !hasBigInts }, function (t) {
 
 			st.end();
 		});
+	});
+
+	t.end();
+});
+
+test('toPrimitive', function (t) {
+	t.test('gracefully handles error throwing', function (mt) {
+		var toStringThrow = {
+			toString: function () { throw new Error(); }
+		};
+		var toStringThrowFalsy = {
+			toString: function () { throw false; }
+		};
+		var toStringThrowFalsy2 = {
+			toString: function () { throw false; }
+		};
+		var valueOfThrow = {
+			valueOf: function () { throw new Error(); }
+		};
+		var noThrow = {};
+
+		mt.equal(
+			isEqualWhy(toStringThrow, toStringThrowFalsy),
+			'value at key "toString" differs: Function string representations differ',
+			'both throw; falls back to toString comparison'
+		);
+		mt.equal(
+			isEqualWhy(toStringThrowFalsy, toStringThrowFalsy2),
+			'',
+			'both throw; falls back to toString comparison'
+		);
+
+		mt.equal(isEqualWhy(toStringThrow, noThrow), 'first argument toPrimitive (hint String) throws; second does not');
+		mt.equal(isEqualWhy(noThrow, toStringThrow), 'second argument toPrimitive (hint String) throws; first does not');
+		mt.equal(isEqualWhy(valueOfThrow, noThrow), 'first argument toPrimitive (hint Number) throws; second does not');
+		mt.equal(isEqualWhy(noThrow, valueOfThrow), 'second argument toPrimitive (hint Number) throws; first does not');
+
+		mt.end();
+	});
+
+	t.test('toPrimitive strings', function (mt) {
+		var foo1 = {
+			toString: function () { return 'foo'; }
+		};
+		var foo2 = {
+			toString: function () { return 'foo'; }
+		};
+		var bar = {
+			toString: function () { return 'bar'; }
+		};
+
+		mt.equal(isEqualWhy(foo1, foo2), '');
+		mt.equal(isEqualWhy(foo1, bar), 'first argument toPrimitive does not match second argument toPrimitive (hint String)');
+		mt.equal(isEqualWhy(bar, foo1), 'first argument toPrimitive does not match second argument toPrimitive (hint String)');
+
+		mt.end();
+	});
+
+	t.test('toPrimitive numbers', function (mt) {
+		var value1 = {
+			valueOf: function () { return 1; }
+		};
+		var alsoValue1 = {
+			valueOf: function () { return 1; }
+		};
+		var value2 = {
+			valueOf: function () { return 2; }
+		};
+
+		mt.equal(isEqualWhy(value1, alsoValue1), '');
+		mt.equal(isEqualWhy(value1, value2), 'first argument toPrimitive does not match second argument toPrimitive (hint Number)');
+		mt.equal(isEqualWhy(value2, value1), 'first argument toPrimitive does not match second argument toPrimitive (hint Number)');
+
+		mt.end();
+	});
+
+	t.test('Symbol.toPrimitive', { skip: !hasSymbols || !Symbol.toPrimitive }, function (st) {
+		var hints = [];
+		var obj = {
+			toString: function () { return 'toString'; },
+			valueOf: function () { return 'valueOf'; }
+		};
+		var obj2 = {
+			toString: function () { return 'toString'; },
+			valueOf: function () { return 'valueOf'; }
+		};
+		obj2[Symbol.toPrimitive] = function (hint) {
+			hints.push(hint);
+			if (hint === 'string') {
+				return 'toString';
+			}
+			if (hint === 'number') {
+				return 'valueOf';
+			}
+			return 'default';
+		};
+
+		st.equal(
+			isEqualWhy(obj, obj2),
+			'first argument toPrimitive does not match second argument toPrimitive (hint default)',
+			'test Symbol.toPrimitive'
+		);
+
+		st.deepEqual(hints, ['string', 'number', 'default'], 'all hints are tested');
+
+		st.end();
 	});
 
 	t.end();

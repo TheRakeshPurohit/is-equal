@@ -3,7 +3,7 @@
 var ObjectPrototype = Object.prototype;
 var toStr = ObjectPrototype.toString;
 var booleanValue = Boolean.prototype.valueOf;
-var has = require('has');
+var hasOwn = require('hasown');
 var isArray = require('isarray');
 var isArrowFunction = require('is-arrow-function');
 var isBoolean = require('is-boolean-object');
@@ -16,6 +16,7 @@ var isSymbol = require('is-symbol');
 var isCallable = require('is-callable');
 var isBigInt = require('is-bigint');
 var getIterator = require('es-get-iterator');
+var toPrimitive = require('es-to-primitive/es2015');
 var whichCollection = require('which-collection');
 var whichBoxedPrimitive = require('which-boxed-primitive');
 var getPrototypeOf = require('object.getprototypeof/polyfill')();
@@ -35,6 +36,32 @@ var bigIntValue = hasBigInts ? BigInt.prototype.valueOf : null;
 var normalizeFnWhitespace = function normalizeWhitespace(fnStr) {
 	// this is needed in IE 9, at least, which has inconsistencies here.
 	return fnStr.replace(/^function ?\(/, 'function (').replace('){', ') {');
+};
+
+var testToPrim = function testToPrimitive(value, other, hint, hintName) {
+	var valPrimitive = NaN;
+	var valPrimitiveThrows = false;
+	try {
+		valPrimitive = toPrimitive(value, hint);
+	} catch (error) {
+		valPrimitiveThrows = true;
+	}
+
+	var otherPrimitive = NaN;
+	var otherPrimitiveThrows = false;
+	try {
+		otherPrimitive = toPrimitive(other, hint);
+	} catch (error) {
+		otherPrimitiveThrows = true;
+	}
+
+	if (valPrimitiveThrows || otherPrimitiveThrows) {
+		if (!valPrimitiveThrows) { return 'second argument toPrimitive (hint ' + hintName + ') throws; first does not'; }
+		if (!otherPrimitiveThrows) { return 'first argument toPrimitive (hint ' + hintName + ') throws; second does not'; }
+	} else if (valPrimitive !== otherPrimitive) {
+		return 'first argument toPrimitive does not match second argument toPrimitive (hint ' + hintName + ')';
+	}
+	return '';
 };
 
 module.exports = function whyNotEqual(value, other) {
@@ -98,8 +125,9 @@ module.exports = function whyNotEqual(value, other) {
 		if (!otherIsDate) { return 'first argument is Date, second is not'; }
 		var valTime = +value;
 		var otherTime = +other;
-		if (valTime === otherTime) { return ''; }
-		return 'Dates have different time values: ' + valTime + ' !== ' + otherTime;
+		if (valTime !== otherTime) {
+			return 'Dates have different time values: ' + valTime + ' !== ' + otherTime;
+		}
 	}
 
 	var valIsRegex = isRegex(value);
@@ -109,8 +137,9 @@ module.exports = function whyNotEqual(value, other) {
 		if (!otherIsRegex) { return 'first argument is RegExp, second is not'; }
 		var regexStringVal = String(value);
 		var regexStringOther = String(other);
-		if (regexStringVal === regexStringOther) { return ''; }
-		return 'regular expressions differ: ' + regexStringVal + ' !== ' + regexStringOther;
+		if (regexStringVal !== regexStringOther) {
+			return 'regular expressions differ: ' + regexStringVal + ' !== ' + regexStringOther;
+		}
 	}
 
 	var valIsArray = isArray(value);
@@ -126,8 +155,8 @@ module.exports = function whyNotEqual(value, other) {
 		var equal = '';
 		var valHasIndex, otherHasIndex;
 		while (equal === '' && index >= 0) {
-			valHasIndex = has(value, index);
-			otherHasIndex = has(other, index);
+			valHasIndex = hasOwn(value, index);
+			otherHasIndex = hasOwn(other, index);
 			if (!valHasIndex && otherHasIndex) { return 'second argument has index ' + index + '; first does not'; }
 			if (valHasIndex && !otherHasIndex) { return 'first argument has index ' + index + '; second does not'; }
 			equal = whyNotEqual(value[index], other[index]);
@@ -170,7 +199,12 @@ module.exports = function whyNotEqual(value, other) {
 		return 'second argument is an arrow function; first is not';
 	}
 
-	if (isCallable(value) || isCallable(other)) {
+	var valueIsCallable = isCallable(value);
+	var otherIsCallable = isCallable(other);
+	if (valueIsCallable || otherIsCallable) {
+		if (valueIsCallable !== otherIsCallable) {
+			return valueIsCallable ? 'first argument is callable; second is not' : 'second argument is callable; first is not';
+		}
 		if (functionsHaveNames && whyNotEqual(value.name, other.name) !== '') {
 			return 'Function names differ: "' + value.name + '" !== "' + other.name + '"';
 		}
@@ -181,24 +215,37 @@ module.exports = function whyNotEqual(value, other) {
 		var valueStr = normalizeFnWhitespace(String(value));
 		var otherStr = normalizeFnWhitespace(String(other));
 		if (
-			whyNotEqual(valueStr, otherStr) === ''
-			|| (
+			whyNotEqual(valueStr, otherStr) !== ''
+			&& !(
 				!valueIsGen
 				&& !valueIsArrow
 				&& whyNotEqual(valueStr.replace(/\)\s*\{/, '){'), otherStr.replace(/\)\s*\{/, '){')) === ''
 			)
 		) {
-			return '';
+			return 'Function string representations differ';
 		}
-
-		return 'Function string representations differ';
 	}
 
-	if (typeof value === 'object' || typeof other === 'object') {
+	var valueIsObj = valIsDate || valIsRegex || valIsArray || valueIsGen || valueIsArrow || valueIsCallable || Object(value) === value;
+	var otherIsObj = otherIsDate || otherIsRegex || otherIsArray || otherIsGen || otherIsArrow || otherIsCallable || Object(other) === other;
+
+	if (valueIsObj || otherIsObj) {
 		if (typeof value !== typeof other) { return 'arguments have a different typeof: ' + typeof value + ' !== ' + typeof other; }
 		if (isProto.call(value, other)) { return 'first argument is the [[Prototype]] of the second'; }
 		if (isProto.call(other, value)) { return 'second argument is the [[Prototype]] of the first'; }
 		if (getPrototypeOf(value) !== getPrototypeOf(other)) { return 'arguments have a different [[Prototype]]'; }
+
+		var valueIsFn = typeof value === 'function';
+		var otherIsFn = typeof other === 'function';
+
+		if (!valueIsFn || !otherIsFn) {
+			var result = testToPrim(value, other, String, 'String')
+				|| testToPrim(value, other, Number, 'Number')
+				|| testToPrim(value, other, void undefined, 'default');
+			if (result) {
+				return result;
+			}
+		}
 
 		var valueIterator = getIterator(value);
 		var otherIterator = getIterator(other);
@@ -225,8 +272,8 @@ module.exports = function whyNotEqual(value, other) {
 
 		var key, valueKeyIsRecursive, otherKeyIsRecursive, keyWhy;
 		for (key in value) {
-			if (has(value, key)) {
-				if (!has(other, key)) { return 'first argument has key "' + key + '"; second does not'; }
+			if (hasOwn(value, key)) {
+				if (!hasOwn(other, key)) { return 'first argument has key "' + key + '"; second does not'; }
 				valueKeyIsRecursive = !!value[key] && value[key][key] === value;
 				otherKeyIsRecursive = !!other[key] && other[key][key] === other;
 				if (valueKeyIsRecursive !== otherKeyIsRecursive) {
@@ -242,7 +289,7 @@ module.exports = function whyNotEqual(value, other) {
 			}
 		}
 		for (key in other) {
-			if (has(other, key) && !has(value, key)) {
+			if (hasOwn(other, key) && !hasOwn(value, key)) {
 				return 'second argument has key "' + key + '"; first does not';
 			}
 		}
